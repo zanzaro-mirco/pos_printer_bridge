@@ -1,0 +1,8 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- La stampante USB e' un accessorio, non un requisito: un dispositivo
+         senza porta USB host deve poter installare comunque l'applicazione e
+         usare il trasporto di rete. -->
+    <uses-feature
+        android:name="android.hardware.usb.host"
+        android:required="false" />
+</manifest>

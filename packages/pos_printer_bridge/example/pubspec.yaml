@@ -1,0 +1,28 @@
+name: pos_printer_bridge_example
+description: "La filiera intera: calcola lo scontrino, lo impagina in byte, lo manda alla stampante."
+publish_to: 'none'
+
+environment:
+  sdk: ^3.4.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # I tre pacchetti si incontrano qui e non fra loro. Il costruttore di byte
+  # non dipende da Flutter, il trasporto non sa cosa sia uno scontrino: a
+  # metterli insieme e' l'applicazione, che e' l'unica che ha bisogno di
+  # entrambe le cose.
+  pos_printer_bridge:
+    path: ../
+  esc_pos_builder:
+    path: ../../esc_pos_builder
+  receipt_engine: ^0.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

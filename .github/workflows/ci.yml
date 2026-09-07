@@ -5,16 +5,14 @@ on:
     branches: [main]
   pull_request:
 
-# Il monorepo ha un pacchetto solo, e la pipeline lavora dentro di lui. Quando
-# arriverà il plugin diventeranno due lavori, o una matrice: oggi sarebbe
-# impalcatura per un caso che non esiste.
-defaults:
-  run:
-    working-directory: packages/esc_pos_builder
-
 jobs:
-  test:
+  # Il pacchetto Dart puro: nessun Flutter da installare, quindi il lavoro più
+  # veloce del repository. Gira per primo perché è quello che fallisce prima.
+  esc_pos_builder:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/esc_pos_builder
     steps:
       - uses: actions/checkout@v7
 
@@ -35,8 +33,8 @@ jobs:
         run: dart test
 
       # L'esempio è documentazione eseguibile, e la documentazione che non gira
-      # smette di essere vera senza avvisare. Farlo partire in pipeline costa
-      # un secondo e garantisce che le righe copiate dal README funzionino.
+      # smette di essere vera senza avvisare. Farlo partire costa un secondo e
+      # garantisce che le righe copiate dal README funzionino.
       - name: L'esempio parte davvero
         run: dart run example/esc_pos_builder_example.dart
 
@@ -45,6 +43,9 @@ jobs:
   # push invece che una volta a mano prima di pubblicare.
   punteggio:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/esc_pos_builder
     steps:
       - uses: actions/checkout@v7
 
@@ -58,3 +59,44 @@ jobs:
         run: |
           dart pub global activate pana
           dart pub global run pana --no-warning --exit-code-threshold 30 .
+
+  plugin:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/pos_printer_bridge
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Dipendenze
+        run: flutter pub get
+
+      - name: Formattazione
+        run: dart format --output=none --set-exit-if-changed lib test example/lib example/test
+
+      - name: Analisi
+        run: flutter analyze
+
+      - name: Test del plugin
+        run: flutter test
+
+      - name: Test dell'esempio
+        working-directory: packages/pos_printer_bridge/example
+        run: flutter test
+
+      # È l'unica verifica che tocchi il codice Kotlin, e ne verifica una cosa
+      # sola: che compili. È poco, ed è dichiarato — ed è anche la ragione per
+      # cui nel nativo c'è così poco. Senza questo passo, un errore di
+      # compilazione nel plugin si scoprirebbe solo installando l'applicazione.
+      - name: Il Kotlin compila
+        working-directory: packages/pos_printer_bridge/example
+        run: flutter build apk --debug

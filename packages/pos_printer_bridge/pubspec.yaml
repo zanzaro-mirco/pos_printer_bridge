@@ -1,0 +1,38 @@
+name: pos_printer_bridge
+description: Manda byte a una stampante termica da Flutter - trasporto TCP in Dart puro e trasporto USB via platform channel verso Kotlin, con gli stati della stampante su un flusso.
+version: 0.1.0
+repository: https://github.com/zanzaro-mirco/pos_printer_bridge
+issue_tracker: https://github.com/zanzaro-mirco/pos_printer_bridge/issues
+
+topics:
+  - escpos
+  - printer
+  - usb
+  - pos
+  - thermal-printer
+
+environment:
+  sdk: ^3.4.0
+  flutter: ">=3.3.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+# Niente `plugin_platform_interface`, e quindi niente struttura federata.
+# Quella divisione serve quando piu' pacchetti, scritti da persone diverse,
+# implementano lo stesso contratto per piattaforme diverse. Qui la piattaforma
+# e' una, il contratto e' `PrinterTransport` in Dart e le due implementazioni
+# stanno nello stesso file di tutte le altre. Aggiungerla adesso vorrebbe dire
+# tre classi in piu' per ottenere quello che un'interfaccia gia' fa.
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: it.mircozanzaro.pos_printer_bridge
+        pluginClass: PosPrinterBridgePlugin

@@ -7,7 +7,7 @@ Flutter solo perché un giorno gli starà accanto un plugin che ne ha bisogno.
 ```
 packages/
   esc_pos_builder/     Dart puro: dallo scontrino ai byte
-  pos_printer_bridge/  (non ancora scritto) il plugin: dai byte alla stampante
+  pos_printer_bridge/  il plugin: dai byte alla stampante
 ```
 
 ## Perché due pacchetti e non uno
@@ -195,3 +195,136 @@ quelle cose è un modo diverso di rompersi.
 - **Una tabella dei caratteri per documento.** ESC/POS permette di cambiarla in mezzo al
   flusso, e servirebbe per stampare cirillico e greco sullo stesso scontrino. Non è un
   problema che esiste in un locale italiano.
+
+---
+
+# Il plugin: dai byte alla stampante
+
+## Il contratto conosce solo byte
+
+`PrinterTransport` sa aprire, scrivere byte, chiudere, e ha un flusso di stati. **Non sa
+cosa trasporta**, come un cavo seriale non sa cosa sia uno scontrino.
+
+È da questa povertà che discende la cosa utile: due implementazioni molto diverse — un
+socket in Dart puro e un canale verso Kotlin — sono intercambiabili, e chi stampa non
+cambia una riga passando dall'una all'altra. Nell'applicazione di esempio è letteralmente
+un interruttore a schermo.
+
+È anche la ragione per cui il plugin **non dipende da `esc_pos_builder`**. Sarebbe stato
+comodo offrire un `stampa(EscPosDocument)`, e sarebbe stato sbagliato: un trasporto che
+conosce il formato di ciò che trasporta non può più trasportare altro, e in cambio non si
+guadagna niente che l'applicazione non possa fare in due righe. I tre pacchetti si
+incontrano nell'esempio, non fra loro.
+
+## Il nativo sposta byte, e basta
+
+Il codice Kotlin trova il dispositivo, chiede il permesso, apre gli endpoint, scrive e
+legge. **Non decodifica uno stato, non compone un comando, non decide quando riprovare.**
+
+Non è eleganza, è dove si possono mettere le cose alla prova. Il nativo è la parte che
+costa di più verificare: serve un dispositivo, un emulatore non basta — non ha una porta
+USB host — e un test JVM su `UsbManager` finisce per verificare i finti che ci si è
+scritti. Quindi il nativo si tiene sottile fino a essere quasi ovvio, e tutto ciò che ha
+una logica dentro attraversa il canale e viene provato in Dart.
+
+La prova che ne discende: **la decodifica degli stati è una sola per i due trasporti.** I
+byte arrivano da un endpoint USB o da un socket, ma sono gli stessi byte, e li legge lo
+stesso codice — che ha i suoi test e non ha bisogno di hardware.
+
+## Lo stato non è una risposta
+
+Una stampante termica non risponde «ok» a *stampa*. Manda quattro byte quando qualcosa
+cambia — la carta finisce, il coperchio si apre, la lama si inceppa — e possono arrivare
+mentre non le si sta chiedendo niente.
+
+Per questo dall'altra parte c'è un `Stream` e non un `Future`, e per questo sul canale
+nativo c'è un `EventChannel` accanto al `MethodChannel`: sono due direzioni diverse, non
+due modi di fare la stessa cosa. È la differenza fra un'applicazione che dice «carta
+finita» mentre succede e una che se ne accorge alla stampa dopo, con un cliente davanti.
+
+**La decodifica verifica i bit fissi.** La specifica Epson dell'Automatic Status Back dà a
+ognuno dei quattro byte la stessa firma: i due bit più bassi a zero, il quarto a uno, il
+più alto a zero. Controllarla è l'unica difesa contro il decodificare rumore in qualcosa
+che *sembra* uno stato plausibile — e, va detto, anche contro l'aver capito male la
+specifica: i costruttori non sono tutti uguali su tutto, e prima di fidarsi su un modello
+specifico vale la pena confrontare con il suo manuale.
+
+E il riallineamento scarta **un byte solo**, non quattro: buttare l'intero gruppo
+perderebbe uno stato valido che comincia un byte più in là.
+
+Un nome di campo racconta la stessa prudenza: il bit del cassetto si chiama
+`drawerPinHigh` e non `drawerOpen`, perché se alto voglia dire aperto o chiuso dipende da
+**come è cablato il cassetto**, e sul campo si trovano entrambi. Un nome che promette più
+di quello che il bit dice fa scrivere a qualcuno un controllo sbagliato.
+
+## Le tre cose che su Android USB si sbagliano
+
+Sono scritte nel codice con il perché accanto, perché nessuna delle tre dà un errore
+comprensibile quando è sbagliata.
+
+1. **`FLAG_MUTABLE` sul `PendingIntent` del permesso.** È il sistema a scrivere dentro
+   l'intent quale dispositivo è stato autorizzato, e su un intent immutabile non può
+   farlo. Da Android 12 il risultato è che arriva sempre «negato», senza spiegazioni.
+2. **`RECEIVER_NOT_EXPORTED` da Android 13.** Senza, il sistema chiude l'applicazione.
+3. **La scrittura è un ciclo.** `bulkTransfer` scrive fino alla dimensione del pacchetto e
+   restituisce quanto ha scritto: uno scontrino è quasi sempre più lungo, quindi il ciclo
+   non è prudenza, è la condizione normale.
+
+E la stampante si cerca per **classe 7 dello standard USB**, non per un elenco di
+identificativi di fornitore: un elenco va aggiornato a ogni modello nuovo, e sul campo il
+modello nuovo arriva sempre di sabato.
+
+## Perché niente struttura federata
+
+`flutter create` genera un plugin con `plugin_platform_interface`, una classe astratta e
+un'implementazione a canale. Quella divisione serve quando **più pacchetti, scritti da
+persone diverse, implementano lo stesso contratto per piattaforme diverse**: è nata perché
+chi mantiene `url_launcher` non debba anche mantenere la versione Windows.
+
+Qui la piattaforma è una, il contratto è `PrinterTransport` in Dart, e le due
+implementazioni stanno accanto a tutte le altre. Aggiungerla adesso vorrebbe dire tre
+classi in più per ottenere quello che un'interfaccia già fa — e il giorno in cui servisse
+davvero, il contratto è già al posto giusto.
+
+## Come si mette alla prova un plugin senza il dispositivo
+
+Tre livelli, e nessuno dei tre ha bisogno di una stampante:
+
+1. **Il trasporto di rete contro un vero `ServerSocket`.** Non è un doppio: è un socket
+   vero che parla con un socket vero, e ciò che si verifica è il codice che andrà in
+   produzione. L'unica cosa finta è chi sta all'altro capo del cavo — e può anche
+   rispondere con quattro byte di stato, che è come si mette alla prova il flusso.
+2. **Il confine con il nativo, con i canali sostituiti.** Non verifica Kotlin: verifica che
+   la chiamata attraversi davvero il canale con il nome e gli argomenti giusti, e che ciò
+   che torna indietro — errori compresi — diventi un tipo di dominio prima di uscire dal
+   pacchetto. È il confine che, sbagliato, produce l'errore più difficile da capire di un
+   plugin: un metodo che non esiste dall'altra parte e una `MissingPluginException` senza
+   spiegazioni.
+3. **La compilazione dell'APK dell'esempio, in pipeline.** È l'unica verifica che tocchi il
+   Kotlin, e verifica una cosa sola: che compili. È poco, ed è dichiarato — ed è anche la
+   ragione per cui nel nativo c'è così poco.
+
+**Le prove sono state falsificate:**
+
+| Modifica | Cosa deve diventare rosso | Esito |
+|---|---|---|
+| Accettare qualunque byte come stato | rifiuto del rumore, riallineamento, filtro sul canale eventi | 3 rossi |
+| Lasciare uscire la `PlatformException` | tutta la traduzione degli errori | 6 rossi |
+
+## Dove ho consapevolmente semplificato, nel plugin
+
+- **Niente iOS.** La stampa via USB non è aperta alle applicazioni di terze parti:
+  servirebbe l'MFi, che è un programma commerciale di Apple e non una libreria. Il
+  trasporto di rete funzionerebbe, ma un plugin che dichiara iOS e ne supporta metà è
+  peggio di uno che non lo dichiara.
+- **Niente Bluetooth**, che è il terzo trasporto naturale. Entra dallo stesso contratto:
+  `PrinterTransport` non cambia di una riga, ed è il senso di averlo.
+- **Nessuna scoperta delle stampanti di rete.** L'indirizzo si digita. Cercarle con mDNS è
+  lo stesso problema già risolto in `pos_sync`, e va portato qui quando serve.
+- **Una stampante per volta.** Un locale con due stampanti — scontrini al banco, comande in
+  cucina — vuole due canali aperti insieme, e il lato Kotlin oggi ne tiene uno.
+- **Nessuna coda con ritentativi.** Se la stampante è occupata, `write` fallisce e la
+  decisione torna a chi chiama. La coda è il livello sopra, e in questo portfolio esiste
+  già: è l'outbox di `pos_sync`.
+- **Nessun test JVM sul Kotlin.** Verificherebbe i finti che ci si è scritti. La scelta è
+  stata togliere logica dal nativo invece che aggiungerci prove.
