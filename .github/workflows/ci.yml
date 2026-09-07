@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Il monorepo ha un pacchetto solo, e la pipeline lavora dentro di lui. Quando
+# arriverà il plugin diventeranno due lavori, o una matrice: oggi sarebbe
+# impalcatura per un caso che non esiste.
+defaults:
+  run:
+    working-directory: packages/esc_pos_builder
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Dipendenze
+        run: dart pub get
+
+      - name: Formattazione
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analisi
+        run: dart analyze --fatal-infos
+
+      - name: Test
+        run: dart test
+
+      # L'esempio è documentazione eseguibile, e la documentazione che non gira
+      # smette di essere vera senza avvisare. Farlo partire in pipeline costa
+      # un secondo e garantisce che le righe copiate dal README funzionino.
+      - name: L'esempio parte davvero
+        run: dart run example/esc_pos_builder_example.dart
+
+  # Il punteggio di pub.dev è la metrica con cui il pacchetto viene giudicato da
+  # chiunque lo apra, e come tutte le metriche che contano va misurata a ogni
+  # push invece che una volta a mano prima di pubblicare.
+  punteggio:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - run: dart pub get
+
+      - name: Punteggio pub.dev
+        run: |
+          dart pub global activate pana
+          dart pub global run pana --no-warning --exit-code-threshold 30 .
