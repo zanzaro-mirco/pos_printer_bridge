@@ -68,13 +68,24 @@ anche un `nc -l 9100` sul computer accanto, che stampa a schermo i byte che arri
 
 ## Test
 
-94 test, e **nessuno ha bisogno di una stampante**.
+94 test che **non hanno bisogno di una stampante**, più 6 che ne vogliono una.
 
 | Dove | Cosa | Come |
 |---|---|---|
 | `esc_pos_builder` | 57 | confronto byte per byte, e un decodificatore che rilegge il flusso all'indietro |
 | `pos_printer_bridge` | 35 | un vero socket contro un vero `ServerSocket`, e il confine con Kotlin con i canali sostituiti |
 | esempio del plugin | 2 | i tre pacchetti si incastrano davvero |
+| **contro una stampante vera** | 6 | si saltano da soli finché non gli dici dove guardare |
+
+```bash
+cd packages/pos_printer_bridge/example
+flutter test test/real_printer_test.dart \
+  --dart-define=PRINTER_HOST=192.168.1.100 \
+  --dart-define=PRINTER_PORT=9200
+```
+
+Senza quel parametro si saltano invece di fallire: una suite che diventa rossa perché *non*
+hai una stampante collegata è una suite che si impara a ignorare.
 
 Il codice Kotlin ha una verifica sola: **la pipeline compila l'APK dell'esempio**. È poco,
 ed è dichiarato — ed è anche la ragione per cui nel nativo c'è così poco: sposta byte, e
@@ -92,7 +103,9 @@ Le scelte di progetto, e le semplificazioni consapevoli, sono in
 - [x] Trasporto TCP per le stampanti di rete
 - [x] Trasporto USB su Android: `MethodChannel` e `EventChannel` verso Kotlin
 - [x] Stati della stampante decodificati, uguali per i due trasporti
-- [ ] La prova su una stampante vera
+- [x] Provato contro una stampante di rete vera: apertura, scontrino intero, due di fila
+      sulla stessa connessione, e la porta sbagliata che diventa l'errore giusto
+- [ ] La prova su carta — l'emulatore ha verificato il trasporto, non la codifica del testo
 - [ ] Codici a barre (`GS k`) e logo raster
 - [ ] Trasporto Bluetooth, dallo stesso contratto
 - [ ] Pubblicazione su pub.dev

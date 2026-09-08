@@ -311,6 +311,56 @@ Tre livelli, e nessuno dei tre ha bisogno di una stampante:
 | Accettare qualunque byte come stato | rifiuto del rumore, riallineamento, filtro sul canale eventi | 3 rossi |
 | Lasciare uscire la `PlatformException` | tutta la traduzione degli errori | 6 rossi |
 
+## La prova contro una stampante che non ho scritto io
+
+Tutti i test di questo repository, tranne questi, girano contro un socket che ho scritto
+io — e un server scritto da chi scrive anche il client va d'accordo con lui per
+costruzione. `example/test/real_printer_test.dart` punta invece a un indirizzo vero:
+
+```bash
+flutter test test/real_printer_test.dart \
+  --dart-define=PRINTER_HOST=192.168.1.100 \
+  --dart-define=PRINTER_PORT=9200
+```
+
+Senza quel parametro i test **si saltano invece di fallire**. Una suite che diventa rossa
+perché *non* hai una stampante collegata è una suite che si impara a ignorare, e allora
+tanto vale non averla.
+
+Cosa ha dimostrato, contro un emulatore ESC/POS in rete: il canale si apre in decine di
+millisecondi, uno scontrino intero da 1012 byte parte per intero, due scontrini di fila
+viaggiano sulla stessa connessione senza riaprirla, e una porta vicina a quella giusta
+diventa un `PrinterUnreachable` invece di un errore generico. L'impaginazione arriva
+identica all'anteprima: colonne allineate, l'a capo rientrato sulla descrizione lunga.
+
+### E ha trovato una cosa che nessun test poteva trovare
+
+**Le lettere accentate e l'euro uscivano sbagliati.** «Sarà l'emulatore» è la spiegazione
+comoda, ed è anche quella che non si può consegnare a nessuno. È una domanda con una
+risposta esatta, perché i byte che mandiamo sono deterministici.
+
+La stampa di prova che l'ha determinata ha quattro righe. Le prime tre hanno **gli stessi
+identici byte di testo** — quelli di PC858 — e cambia solo la tabella dichiarata prima di
+ognuna; la quarta ha gli stessi caratteri in UTF-8:
+
+| Esito | Cosa avrebbe significato |
+|---|---|
+| giusta solo la terza | l'emulatore rispetta `ESC t`, e la nostra tabella è quella giusta |
+| le prime tre uguali fra loro | ignora `ESC t` e legge sempre con una tabella sua |
+| **giusta solo la quarta** | **ignora `ESC t` e decodifica in UTF-8** |
+
+È uscita giusta la quarta. L'emulatore fa quello che fa quasi ogni programma scritto in un
+linguaggio moderno, e che **nessuna stampante termica fa**: assume UTF-8. Il pacchetto
+manda `0x8A` per la `è` e `0xD5` per l'euro, che è ciò che la specifica prescrive e ciò che
+un dispositivo vero si aspetta.
+
+Quindi il difetto non è nostro, e adeguarsi sarebbe il difetto: mandare UTF-8 a una
+stampante vera fa uscire `caffÃ¨`, ed è precisamente la ragione per cui le tabelle esistono.
+
+Resta però un fatto utile da dichiarare invece che da nascondere: **questa prova ha
+verificato il trasporto, non la codifica del testo.** Per quella l'emulatore non è un
+giudice, e serve carta.
+
 ## Dove ho consapevolmente semplificato, nel plugin
 
 - **Niente iOS.** La stampa via USB non è aperta alle applicazioni di terze parti:
@@ -328,3 +378,8 @@ Tre livelli, e nessuno dei tre ha bisogno di una stampante:
   già: è l'outbox di `pos_sync`.
 - **Nessun test JVM sul Kotlin.** Verificherebbe i finti che ci si è scritti. La scelta è
   stata togliere logica dal nativo invece che aggiungerci prove.
+- **Niente testo in UTF-8.** Alcune stampanti recenti lo accettano, e ogni emulatore lo
+  assume. Il pacchetto parla solo tabelle di caratteri, perché è ciò che funziona su tutto
+  il parco installato: una stampante da dieci anni non sa cosa sia UTF-8, e chi compra un
+  registratore di cassa non lo cambia perché è uscito un formato nuovo. Aggiungerlo è una
+  riga nell'`EscPosEncoder` il giorno in cui esiste un dispositivo che lo richiede.
