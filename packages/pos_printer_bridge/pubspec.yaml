@@ -3,6 +3,7 @@ description: Manda byte a una stampante termica da Flutter - trasporto TCP in Da
 version: 0.1.0
 repository: https://github.com/zanzaro-mirco/pos_printer_bridge
 issue_tracker: https://github.com/zanzaro-mirco/pos_printer_bridge/issues
+documentation: https://github.com/zanzaro-mirco/pos_printer_bridge/blob/main/ARCHITECTURE.md
 
 topics:
   - escpos
@@ -13,7 +14,9 @@ topics:
 
 environment:
   sdk: ^3.4.0
-  flutter: ">=3.3.0"
+  # Dart 3.4 e' la versione che arriva con Flutter 3.22: dichiarare meno
+  # prometterebbe una compatibilita' che il vincolo sopra nega comunque.
+  flutter: ">=3.22.0"
 
 dependencies:
   flutter:

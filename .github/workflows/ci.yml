@@ -93,6 +93,14 @@ jobs:
         working-directory: packages/pos_printer_bridge/example
         run: flutter test
 
+      # Lo stesso controllo del lavoro `punteggio`, sull'altro pacchetto: sono
+      # due pubblicazioni separate, e un punteggio misurato su uno non dice
+      # niente dell'altro.
+      - name: Punteggio pub.dev
+        run: |
+          dart pub global activate pana
+          dart pub global run pana --no-warning --exit-code-threshold 30 .
+
       # È l'unica verifica che tocchi il codice Kotlin, e ne verifica una cosa
       # sola: che compili. È poco, ed è dichiarato — ed è anche la ragione per
       # cui nel nativo c'è così poco. Senza questo passo, un errore di

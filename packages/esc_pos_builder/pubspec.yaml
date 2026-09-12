@@ -3,6 +3,7 @@ description: Costruisce il flusso ESC/POS per una stampante termica a partire da
 version: 0.1.0
 repository: https://github.com/zanzaro-mirco/pos_printer_bridge
 issue_tracker: https://github.com/zanzaro-mirco/pos_printer_bridge/issues
+documentation: https://github.com/zanzaro-mirco/pos_printer_bridge/blob/main/ARCHITECTURE.md
 
 topics:
   - escpos

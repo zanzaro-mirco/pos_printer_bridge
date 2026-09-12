@@ -15,9 +15,18 @@ dependencies:
   # entrambe le cose.
   pos_printer_bridge:
     path: ../
+  esc_pos_builder: ^0.1.0
+  receipt_engine: ^0.3.0
+
+# `path: ../` sopra resta valido anche dentro l'archivio pubblicato, perche'
+# l'esempio viaggia dentro il pacchetto. `esc_pos_builder` invece e' un pacchetto
+# fratello, e da dentro l'archivio non si raggiunge: li' va la versione vera, che
+# e' anche quella che legge chi apre l'esempio su pub.dev. In locale la
+# scavalchiamo con il sorgente, cosi' una modifica ai byte si prova senza
+# pubblicare niente.
+dependency_overrides:
   esc_pos_builder:
     path: ../../esc_pos_builder
-  receipt_engine: ^0.3.0
 
 dev_dependencies:
   flutter_test:
