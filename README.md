@@ -4,6 +4,8 @@ Dalla stampante termica a Dart: il flusso ESC/POS costruito in Dart puro, e il c
 nativo che lo porta fino all'hardware.
 
 [![CI](https://github.com/zanzaro-mirco/pos_printer_bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/zanzaro-mirco/pos_printer_bridge/actions/workflows/ci.yml)
+[![esc_pos_builder](https://img.shields.io/pub/v/esc_pos_builder?label=esc_pos_builder)](https://pub.dev/packages/esc_pos_builder)
+[![pos_printer_bridge](https://img.shields.io/pub/v/pos_printer_bridge?label=pos_printer_bridge)](https://pub.dev/packages/pos_printer_bridge)
 
 ## Perché questo progetto
 
@@ -105,10 +107,10 @@ Le scelte di progetto, e le semplificazioni consapevoli, sono in
 - [x] Stati della stampante decodificati, uguali per i due trasporti
 - [x] Provato contro una stampante di rete vera: apertura, scontrino intero, due di fila
       sulla stessa connessione, e la porta sbagliata che diventa l'errore giusto
+- [x] Pubblicati su pub.dev, entrambi con 160 punti su 160
 - [ ] La prova su carta — l'emulatore ha verificato il trasporto, non la codifica del testo
 - [ ] Codici a barre (`GS k`) e logo raster
 - [ ] Trasporto Bluetooth, dallo stesso contratto
-- [ ] Pubblicazione su pub.dev
 
 ## Licenza
 
