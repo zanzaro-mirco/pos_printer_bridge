@@ -77,7 +77,7 @@ anche un `nc -l 9100` sul computer accanto, che stampa a schermo i byte che arri
 | `esc_pos_builder` | 57 | confronto byte per byte, e un decodificatore che rilegge il flusso all'indietro |
 | `pos_printer_bridge` | 35 | un vero socket contro un vero `ServerSocket`, e il confine con Kotlin con i canali sostituiti |
 | esempio del plugin | 2 | i tre pacchetti si incastrano davvero |
-| **contro una stampante vera** | 6 | si saltano da soli finché non gli dici dove guardare |
+| **contro una stampante in rete** | 6 | eseguiti contro un emulatore ESC/POS; si saltano da soli finché non gli dici dove guardare |
 
 ```bash
 cd packages/pos_printer_bridge/example
@@ -105,8 +105,9 @@ Le scelte di progetto, e le semplificazioni consapevoli, sono in
 - [x] Trasporto TCP per le stampanti di rete
 - [x] Trasporto USB su Android: `MethodChannel` e `EventChannel` verso Kotlin
 - [x] Stati della stampante decodificati, uguali per i due trasporti
-- [x] Provato contro una stampante di rete vera: apertura, scontrino intero, due di fila
-      sulla stessa connessione, e la porta sbagliata che diventa l'errore giusto
+- [x] Provato contro un emulatore ESC/POS in rete, che non ho scritto io: apertura,
+      scontrino intero, due di fila sulla stessa connessione, e la porta sbagliata che
+      diventa l'errore giusto
 - [x] Pubblicati su pub.dev, entrambi con 160 punti su 160
 - [ ] La prova su carta — l'emulatore ha verificato il trasporto, non la codifica del testo
 - [ ] Codici a barre (`GS k`) e logo raster
