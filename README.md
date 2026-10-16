@@ -7,7 +7,7 @@ nativo che lo porta fino all'hardware.
 [![esc_pos_builder](https://img.shields.io/pub/v/esc_pos_builder?label=esc_pos_builder)](https://pub.dev/packages/esc_pos_builder)
 [![pos_printer_bridge](https://img.shields.io/pub/v/pos_printer_bridge?label=pos_printer_bridge)](https://pub.dev/packages/pos_printer_bridge)
 
-È uno dei quattro progetti del mio portfolio: la scheda, insieme agli altri tre, è su [zanzaro-mirco.github.io](https://zanzaro-mirco.github.io/progetti/pos-printer-bridge/).
+È uno dei cinque progetti del mio portfolio: la scheda, insieme agli altri quattro, è su [zanzaro-mirco.github.io](https://zanzaro-mirco.github.io/progetti/pos-printer-bridge/).
 
 ## Perché questo progetto
 
