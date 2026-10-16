@@ -11,11 +11,12 @@ nativo che lo porta fino all'hardware.
 
 ## Perché questo progetto
 
-Gli altri tre progetti di questo portfolio calcolano, sincronizzano e mostrano. Nessuno dei
+Tre degli altri progetti di questo portfolio calcolano, sincronizzano e mostrano: nessuno dei
 tre **tocca l'hardware**, che è invece il mestiere che faccio da dodici anni: registratori
-di cassa, palmari da campo, terminali di pagamento, stampanti fiscali su seriale.
+di cassa, palmari da campo, terminali di pagamento, stampanti fiscali su seriale. Il quarto,
+`device_commissioning`, parla con una centralina via Bluetooth.
 
-Questo lo tocca, e chiude la filiera:
+Questo tocca una stampante, e chiude la filiera:
 
 ```
    receipt_engine           esc_pos_builder           pos_printer_bridge
