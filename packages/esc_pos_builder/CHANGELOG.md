@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.1
+
+- **Il vincolo su `receipt_engine` arriva fino alla 0.6.** Era `^0.3.0`, e su una versione
+  `0.x` il cursore `^` non sale di minore: si fermava prima della `0.4`, mentre il pacchetto
+  è già alla `0.6.1`. Chi usa `receipt_engine 0.6` non poteva installare questo
+  accanto. Non è cambiata una riga di codice: fra la `0.3` e la `0.6` l'unica modifica
+  incompatibile è `VatRate.percentage` da `int` a `num`, e l'impaginazione quella
+  percentuale la scrive e basta. I 94 test passano sulla `0.6.1`.
+
 ## 0.2.0
 
 Codici a barre e immagini: le due cose che una stampante termica fa e che non sono

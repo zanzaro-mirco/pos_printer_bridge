@@ -1,6 +1,6 @@
 name: esc_pos_builder
 description: Costruisce il flusso ESC/POS per una stampante termica - impaginazione a colonne, tabelle dei caratteri, codici a barre, logo e anteprima su carta. Dart puro, senza Flutter.
-version: 0.2.0
+version: 0.2.1
 repository: https://github.com/zanzaro-mirco/pos_printer_bridge
 issue_tracker: https://github.com/zanzaro-mirco/pos_printer_bridge/issues
 documentation: https://github.com/zanzaro-mirco/pos_printer_bridge/blob/main/ARCHITECTURE.md
@@ -16,7 +16,7 @@ environment:
   sdk: ^3.4.0
 
 dependencies:
-  receipt_engine: ^0.3.0
+  receipt_engine: ^0.6.0
 
 dev_dependencies:
   lints: ^6.0.0

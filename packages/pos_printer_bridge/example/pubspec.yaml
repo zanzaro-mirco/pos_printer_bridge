@@ -15,8 +15,8 @@ dependencies:
   # entrambe le cose.
   pos_printer_bridge:
     path: ../
-  esc_pos_builder: ^0.2.0
-  receipt_engine: ^0.3.0
+  esc_pos_builder: ^0.2.1
+  receipt_engine: ^0.6.0
 
 # `path: ../` sopra resta valido anche dentro l'archivio pubblicato, perche'
 # l'esempio viaggia dentro il pacchetto. `esc_pos_builder` invece e' un pacchetto
