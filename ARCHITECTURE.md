@@ -173,12 +173,75 @@ quelle cose è un modo diverso di rompersi.
 | Mandare il cambio di stile a ogni riga | i tre test sullo stile, e il riferimento | 4 rossi |
 | Codificare il testo in UTF-8 invece che con la tabella | accenti, euro, tabella dichiarata | 6 rossi |
 
+## Il codice a barre e il logo: due comandi, due decisioni
+
+Sono le due cose che una stampante termica fa e che non sono testo, e sono entrate come
+due comandi nuovi nella gerarchia chiusa: il compilatore ha indicato da solo i tre punti
+da completare — codificatore, anteprima, costruttore di documenti.
+
+**Il dato del codice si controlla nel costruttore, non dopo.** Un codice a barre sbagliato
+è l'unico difetto di questo pacchetto che non può dare errore da nessuna parte: la
+stampante riceve cifre valide, stampa barre perfette, e nessun lettore le accetta. Il
+riferimento ESC/POS di Epson per le stampanti TM è esplicito su un punto che pesa: quando i dati arrivano completi
+della cifra di controllo, quella cifra viene stampata così com'è e **non viene
+verificata**. Se non la verifica questo pacchetto, non la verifica nessuno — e il difetto
+si scopre alla cassa, con il cliente davanti. Perciò EAN13 ed EAN8 ricalcolano la cifra e
+rifiutano quella sbagliata dicendo quale sarebbe.
+
+**Quattro sistemi e non quindici.** EAN13, EAN8, CODE39, CODE128. ESC/POS ne elenca molti
+altri, e ognuno ha le sue regole su cosa può contenere: UPC-E ha quattro lunghezze
+diverse con significati diversi, ITF vuole un numero pari di cifre, CODABAR vuole le
+lettere di delimitazione agli estremi. Un sistema dichiarato *senza* le sue regole è
+peggio di un sistema assente, perché accetta dati che diventano barre illeggibili. Si
+aggiungono uno per volta, con le loro regole e i loro test.
+
+**Per il logo non uso `GS v 0`.** È il comando con cui si stampa un logo in ogni esempio
+che si trova in rete, ed è anche il comando che il riferimento di Epson marca come
+obsoleto, scrivendo che i modelli futuri non lo supporteranno e consigliando al suo posto
+la funzione grafica `GS ( L` / `GS 8 L`. Ho scelto quella consigliata. È la decisione più
+discutibile del pacchetto, e il suo prezzo è dichiarato: una stampante economica non
+Epson che accetti soltanto il comando obsoleto, con questo pacchetto, non stampa il logo.
+La ragione per cui l'ho scelta comunque è che un pacchetto pubblicato deve funzionare
+anche fra qualche anno, e l'alternativa è nella stessa gerarchia chiusa — un comando in
+più, non una riscrittura.
+
+La funzione grafica dichiara in testa quanti byte la compongono, e la dichiarazione sta
+in due byte: un logo da 576 punti su mille righe fa 72 mila byte e non ci entra. Per
+quello esiste `GS 8 L`, lo stesso comando con la lunghezza su quattro byte, e il
+codificatore passa all'una o all'altra da solo in base alla misura.
+
+**L'immagine entra come bit.** Niente PNG: decodificare un'immagine richiede una libreria
+di decodifica, e Dart puro senza dipendenze è metà del valore di `esc_pos_builder`. Chi ha
+già un decodificatore passa i byte; chi non ce l'ha disegna il logo come testo con
+`RasterImage.fromRows`, un punto per carattere, e non installa niente. La conversione da
+una foto a un bianco e nero — soglia, mezzitoni, scalatura — è un problema di grafica, e
+un pacchetto di stampa che se lo prende in carico diventa un pacchetto di grafica
+mediocre.
+
+**Le misure del codice si dichiarano sempre, e qui il pacchetto si contraddice di
+proposito.** Per lo stile del testo manda solo i cambi, perché `ESC @` lascia la stampante
+in uno stato noto e la prima riga normale non costa niente. Per l'altezza della barra e la
+larghezza del modulo no: il riferimento dice che il loro valore di accensione **dipende dal
+modello**. Dare per buono un valore significa un codice alto due centimetri su una
+stampante e due millimetri su quella del negozio accanto. Quindi il primo codice di ogni
+documento dichiara tutte e quattro le impostazioni, anche quelle predefinite; dal secondo
+in poi valgono le stesse regole del testo.
+
 ## Dove ho consapevolmente semplificato
 
-- **Niente codici a barre né immagini.** `GS k` per i codici a barre e la stampa raster
-  per i loghi sono i due pezzi che mancano perché il pacchetto copra uno scontrino
-  commerciale completo. Sono aggiunte, non modifiche: entrano come nuovi comandi nella
-  gerarchia chiusa, e il compilatore indicherà da solo dove gestirli.
+- **La larghezza di CODE39 e CODE128 non è calcolata.** Per EAN13 ed EAN8 è un conto
+  esatto — 95 e 67 moduli, qualunque cifra ci sia dentro — e `EscPosDocumentBuilder`
+  rifiuta un codice più largo della carta dicendo con quale larghezza del modulo ci
+  starebbe. Per gli altri due dipende da quanti caratteri ci sono e, nel CODE39, dal
+  rapporto fra tratto stretto e tratto largo, che è una scelta del modello di stampante.
+  Preferisco non saperlo che stimarlo: una stima sbagliata rifiuterebbe codici buoni.
+- **Le zone bianche ai lati di un codice restano a chi impagina.** Il riferimento dice che
+  non sono comprese nella larghezza stampata, e un lettore ha bisogno di vederle per
+  capire dove il codice comincia. Centrare il codice è il modo più semplice di dargliele,
+  ed è il valore predefinito.
+- **Niente mezzitoni e nessun ingrandimento dell'immagine.** La funzione grafica sa
+  raddoppiare larghezza e altezza e sa gestire più toni; qui passa sempre monocromatica e
+  senza ingrandimento. Un logo si disegna nella misura in cui va stampato.
 - **Niente font B.** Il font piccolo cambia il numero di colonne, quindi raddoppierebbe i
   casi da impaginare e i formati da provare. Vale quando esiste una carta su cui il font A
   non basta.
@@ -188,7 +251,9 @@ quelle cose è un modo diverso di rompersi.
 - **L'anteprima è monospaziata**, quindi un carattere a doppia larghezza occupa due
   colonne sulla carta e una nell'anteprima: la posizione del testo è giusta, la lunghezza
   no. Renderla fedele significherebbe scrivere un rasterizzatore per guardare uno
-  scontrino di prova.
+  scontrino di prova. Per lo stesso motivo un'immagine non viene disegnata: l'anteprima
+  mostra il rettangolo di carta che occupa, con la misura scritta dentro, perché quanta
+  carta mangia il logo è l'informazione che serve impaginando.
 - **Nessuna gestione della numerazione progressiva.** L'identificativo del documento
   arriva da fuori, come in `receipt_engine`: è materia di normativa e di registratore di
   cassa, non di chi impagina.

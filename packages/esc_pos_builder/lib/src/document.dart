@@ -1,5 +1,7 @@
+import 'barcode.dart';
 import 'commands.dart';
 import 'paper.dart';
+import 'raster_image.dart';
 import 'text_style.dart';
 
 /// Uno scontrino pronto da stampare, espresso come lista di comandi.
@@ -115,6 +117,51 @@ class EscPosDocumentBuilder {
   /// Aggiunge una riga di separazione larga quanto la carta.
   void separator([String character = '-']) =>
       _commands.add(PrintLine(character * paper.columns));
+
+  /// Aggiunge un codice a barre, se ci sta sulla carta.
+  ///
+  /// Il controllo c'è dove si può fare: EAN13 ed EAN8 occupano un numero
+  /// fisso di moduli, quindi la larghezza in punti è un conto, e un codice
+  /// più largo della carta è un errore qui invece di un codice tagliato a
+  /// metà sullo scontrino. Per CODE39 e CODE128 la larghezza non è calcolata,
+  /// e il motivo è in [BarcodeSymbology.moduleCount]: una stima sbagliata
+  /// rifiuterebbe codici buoni.
+  ///
+  /// Le zone bianche ai lati del codice — il margine che un lettore ha
+  /// bisogno di vedere per capire dove il codice comincia — restano a carico
+  /// di chi impagina: il riferimento ESC/POS dice che non sono comprese nella
+  /// larghezza. Centrare il codice è il modo più semplice di dargliele.
+  void barcode(PrintBarcode code) {
+    final int? dots = code.widthDots;
+    if (dots != null && dots > paper.dots) {
+      throw ArgumentError.value(
+          code,
+          'code',
+          'Un ${code.symbology.label} con moduli da ${code.moduleWidth} punti '
+              'è largo $dots punti, e la carta ne ha ${paper.dots}: con '
+              'moduli da ${paper.dots ~/ code.symbology.moduleCount!} punti '
+              'ci starebbe');
+    }
+    _commands.add(code);
+  }
+
+  /// Aggiunge un'immagine, se ci sta sulla carta.
+  ///
+  /// Un'immagine più larga della carta non dà errore sulla stampante: la
+  /// parte che sfora **non viene stampata**, e il logo esce tagliato a destra
+  /// senza che niente lo dica. Questo è l'unico punto che conosce la
+  /// larghezza della carta, e quindi l'unico che può rifiutarla prima.
+  void image(RasterImage picture, {EscPosAlign align = EscPosAlign.center}) {
+    if (picture.widthDots > paper.dots) {
+      throw ArgumentError.value(
+          picture,
+          'picture',
+          'L\'immagine è larga ${picture.widthDots} punti e la carta ne ha '
+              '${paper.dots}: la stampante taglierebbe il resto senza dire '
+              'niente');
+    }
+    _commands.add(PrintImage(picture, align: align));
+  }
 
   /// Fa avanzare la carta di [count] righe.
   void feed(int count) => _commands.add(FeedLines(count));

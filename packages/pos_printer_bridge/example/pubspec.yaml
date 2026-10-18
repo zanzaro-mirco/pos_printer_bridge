@@ -15,7 +15,7 @@ dependencies:
   # entrambe le cose.
   pos_printer_bridge:
     path: ../
-  esc_pos_builder: ^0.1.0
+  esc_pos_builder: ^0.2.0
   receipt_engine: ^0.3.0
 
 # `path: ../` sopra resta valido anche dentro l'archivio pubblicato, perche'

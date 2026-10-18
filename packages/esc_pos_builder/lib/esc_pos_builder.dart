@@ -16,11 +16,13 @@
 /// così che si guarda uno scontrino senza avere una stampante.
 library;
 
+export 'src/barcode.dart';
 export 'src/code_page.dart';
 export 'src/commands.dart';
 export 'src/document.dart';
 export 'src/encoder.dart';
 export 'src/paper.dart';
 export 'src/preview.dart';
+export 'src/raster_image.dart';
 export 'src/receipt_layout.dart';
 export 'src/text_style.dart';

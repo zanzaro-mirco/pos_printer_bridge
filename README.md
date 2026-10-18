@@ -29,8 +29,12 @@ Questo tocca una stampante, e chiude la filiera:
 **[`packages/esc_pos_builder`](packages/esc_pos_builder)** — Dart puro, senza Flutter.
 Prende uno scontrino e produce i byte che una stampante termica sa stampare:
 impaginazione a colonne che rispetta la larghezza della carta, tabelle dei caratteri,
-taglio e cassetto portavalori. Compreso `PaperPreview`, che rende lo stesso documento come
-testo — così lo scontrino si guarda **senza avere una stampante**.
+taglio e cassetto portavalori. Più le due cose che una termica fa e che non sono testo:
+**codici a barre**, con il dato controllato prima di partire perché un codice sbagliato non
+dà errore da nessuna parte, e il **logo**, che entra come bit — questo pacchetto non
+decodifica immagini, e resta Dart puro senza dipendenze. Compreso `PaperPreview`, che rende
+lo stesso documento come testo — così lo scontrino si guarda **senza avere una
+stampante**.
 
 **[`packages/pos_printer_bridge`](packages/pos_printer_bridge)** — il plugin Flutter. Un
 contratto `PrinterTransport` che conosce **solo byte**, con due implementazioni sotto: TCP
@@ -73,11 +77,11 @@ anche un `nc -l 9100` sul computer accanto, che stampa a schermo i byte che arri
 
 ## Test
 
-94 test che **non hanno bisogno di una stampante**, più 6 che ne vogliono una.
+128 test che **non hanno bisogno di una stampante**, più 6 che ne vogliono una.
 
 | Dove | Cosa | Come |
 |---|---|---|
-| `esc_pos_builder` | 57 | confronto byte per byte, e un decodificatore che rilegge il flusso all'indietro |
+| `esc_pos_builder` | 91 | confronto byte per byte, e un decodificatore che rilegge il flusso all'indietro — anche per i codici a barre e per i bit di un logo |
 | `pos_printer_bridge` | 35 | un vero socket contro un vero `ServerSocket`, e il confine con Kotlin con i canali sostituiti |
 | esempio del plugin | 2 | i tre pacchetti si incastrano davvero |
 | **contro una stampante in rete** | 6 | eseguiti contro un emulatore ESC/POS; si saltano da soli finché non gli dici dove guardare |
@@ -112,8 +116,13 @@ Le scelte di progetto, e le semplificazioni consapevoli, sono in
       scontrino intero, due di fila sulla stessa connessione, e la porta sbagliata che
       diventa l'errore giusto
 - [x] Pubblicati su pub.dev, entrambi con 160 punti su 160
-- [ ] La prova su carta — l'emulatore ha verificato il trasporto, non la codifica del testo
-- [ ] Codici a barre (`GS k`) e logo raster
+- [x] Codici a barre — EAN13, EAN8, CODE39, CODE128 — con il dato controllato nel
+      costruttore: la cifra di controllo di un EAN la verifica questo pacchetto, perché il
+      riferimento ESC/POS dice che la stampante non la verifica
+- [x] Logo, dalla funzione grafica `GS ( L` e non dal `GS v 0` che Epson dà per obsoleto
+- [ ] La prova su carta — l'emulatore ha verificato il trasporto, non la codifica del
+      testo, e nemmeno i codici a barre o il logo: i byte sono quelli della specifica,
+      ma non sono mai usciti da una stampante
 - [ ] Trasporto Bluetooth, dallo stesso contratto
 
 ## Licenza

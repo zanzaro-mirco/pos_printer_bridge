@@ -1,3 +1,5 @@
+import 'barcode.dart';
+import 'raster_image.dart';
 import 'text_style.dart';
 
 /// Una cosa che la stampante deve fare.
@@ -88,4 +90,158 @@ final class OpenDrawer extends EscPosCommand {
 
   @override
   String toString() => 'OpenDrawer(pin $pin)';
+}
+
+/// Un codice a barre.
+///
+/// Il dato arriva come lo scrive una persona — tredici cifre, un codice
+/// interno — e viene controllato qui, nel costruttore, contro le regole del
+/// sistema scelto. Non più tardi: un codice a barre sbagliato non dà errore
+/// da nessuna parte. Esce dalla stampante come barre perfette che nessun
+/// lettore accetta, e lo scopre il cassiere.
+///
+/// Delle altezze e delle larghezze **non c'è un valore di accensione su cui
+/// contare**: il riferimento ESC/POS dice che il valore predefinito di `GS h`
+/// e `GS w` dipende dal modello. Per questo ogni comando porta le sue misure,
+/// e il codificatore le dichiara alla stampante prima del primo codice.
+final class PrintBarcode extends EscPosCommand {
+  /// EAN13: dodici cifre, oppure tredici con la cifra di controllo già
+  /// calcolata e giusta.
+  PrintBarcode.ean13(
+    this.data, {
+    this.heightDots = _defaultHeight,
+    this.moduleWidth = _defaultModuleWidth,
+    this.textPosition = BarcodeTextPosition.below,
+    this.textFont = BarcodeTextFont.a,
+    this.align = EscPosAlign.center,
+  })  : symbology = BarcodeSymbology.ean13,
+        payload = ean13Payload(data) {
+    _checkMeasures();
+  }
+
+  /// EAN8: sette cifre, oppure otto con la cifra di controllo.
+  PrintBarcode.ean8(
+    this.data, {
+    this.heightDots = _defaultHeight,
+    this.moduleWidth = _defaultModuleWidth,
+    this.textPosition = BarcodeTextPosition.below,
+    this.textFont = BarcodeTextFont.a,
+    this.align = EscPosAlign.center,
+  })  : symbology = BarcodeSymbology.ean8,
+        payload = ean8Payload(data) {
+    _checkMeasures();
+  }
+
+  /// CODE39: cifre, maiuscole e pochi simboli. È il codice dei cartellini
+  /// interni, quelli che un'azienda si stampa da sé.
+  PrintBarcode.code39(
+    this.data, {
+    this.heightDots = _defaultHeight,
+    this.moduleWidth = _defaultModuleWidth,
+    this.textPosition = BarcodeTextPosition.below,
+    this.textFont = BarcodeTextFont.a,
+    this.align = EscPosAlign.center,
+  })  : symbology = BarcodeSymbology.code39,
+        payload = code39Payload(data) {
+    _checkMeasures();
+  }
+
+  /// CODE128, con l'insieme di caratteri da usare.
+  ///
+  /// L'insieme va scelto, non indovinato: cambia cosa il codice può contenere
+  /// e quanto viene lungo. [Code128Set.b] è l'ASCII stampabile e va bene per
+  /// quasi tutto; [Code128Set.c] dimezza la lunghezza di un codice fatto di
+  /// sole cifre.
+  PrintBarcode.code128(
+    this.data, {
+    Code128Set set = Code128Set.b,
+    this.heightDots = _defaultHeight,
+    this.moduleWidth = _defaultModuleWidth,
+    this.textPosition = BarcodeTextPosition.below,
+    this.textFont = BarcodeTextFont.a,
+    this.align = EscPosAlign.center,
+  })  : symbology = BarcodeSymbology.code128,
+        payload = code128Payload(data, set) {
+    _checkMeasures();
+  }
+
+  /// 162 punti: circa 20 mm sulle testine da 8 punti per millimetro, che sono
+  /// la quasi totalità delle termiche da banco. Non è il valore di accensione
+  /// della stampante — quello dipende dal modello — è una scelta di questo
+  /// pacchetto, dichiarata e sovrascrivibile.
+  static const int _defaultHeight = 162;
+
+  /// 3 punti per modulo. Un EAN13 sono 95 moduli: 285 punti, metà della
+  /// larghezza di una carta da 80 mm.
+  static const int _defaultModuleWidth = 3;
+
+  /// Il sistema di codifica.
+  final BarcodeSymbology symbology;
+
+  /// Il dato come lo si legge: le cifre, o il codice interno.
+  final String data;
+
+  /// I byte che vanno nel comando, controllati e completi di ciò che il
+  /// sistema richiede — per CODE128, il selettore dell'insieme e le graffe
+  /// raddoppiate.
+  final List<int> payload;
+
+  /// Altezza della barra in punti.
+  final int heightDots;
+
+  /// Larghezza di un modulo in punti: è il tratto più stretto del codice, e
+  /// moltiplica la larghezza di tutto il resto.
+  final int moduleWidth;
+
+  /// Dove stampare le cifre leggibili.
+  final BarcodeTextPosition textPosition;
+
+  /// Con quale font stamparle.
+  final BarcodeTextFont textFont;
+
+  /// Allineamento del codice sulla carta.
+  final EscPosAlign align;
+
+  /// Punti occupati in larghezza, quando il sistema ha una misura fissa.
+  ///
+  /// `null` per CODE39 e CODE128, e il motivo sta in
+  /// [BarcodeSymbology.moduleCount].
+  int? get widthDots {
+    final int? modules = symbology.moduleCount;
+    return modules == null ? null : modules * moduleWidth;
+  }
+
+  void _checkMeasures() {
+    if (heightDots < 1 || heightDots > 255) {
+      throw ArgumentError.value(heightDots, 'heightDots',
+          'L\'altezza sta in un byte: da 1 a 255 punti');
+    }
+    if (moduleWidth < 1 || moduleWidth > 255) {
+      throw ArgumentError.value(moduleWidth, 'moduleWidth',
+          'La larghezza del modulo sta in un byte: da 1 a 255 punti');
+    }
+  }
+
+  @override
+  String toString() => 'PrintBarcode(${symbology.label} "$data", '
+      '$heightDots×$moduleWidth punti, $align)';
+}
+
+/// Un'immagine in bianco e nero, stampata dove sta nel documento.
+///
+/// Sulla carta è il logo in testa allo scontrino, ed è l'unica cosa che una
+/// stampante termica fa che non sia testo.
+final class PrintImage extends EscPosCommand {
+  /// Crea il comando per [image].
+  const PrintImage(this.image, {this.align = EscPosAlign.center});
+
+  /// L'immagine da stampare.
+  final RasterImage image;
+
+  /// Allineamento sulla carta. Centrato per impostazione predefinita: un logo
+  /// a sinistra su uno scontrino si nota, e non in bene.
+  final EscPosAlign align;
+
+  @override
+  String toString() => 'PrintImage($image, $align)';
 }
