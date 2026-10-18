@@ -188,6 +188,7 @@ dart test
 | **`un disegno largo 12 punti torna identico dall'altra parte`** | Disegno ➜ bit ➜ byte ➜ riletti ➜ disegno. Otto punti stanno in un byte, e contare male l'avanzo si vede come un'immagine in diagonale |
 | `il primo codice dichiara tutte e quattro le impostazioni, anche quelle predefinite` | Il valore di accensione di altezza e modulo dipende dal modello |
 | `un'immagine più larga della carta non si impagina` | La stampante taglierebbe il resto senza dire niente |
+| `la descrizione sta fra 60 e 180 caratteri, come vuole pub.dev` | Il `pubspec.yaml` è l'unico file che nessun test rileggeva, e una descrizione fuori misura costa punti su pub.dev |
 | `solo l'impaginazione conosce receipt_engine` | La direzione della dipendenza, verificata sui sorgenti |
 | `niente Flutter, da nessuna parte` | La promessa del pacchetto, scritta dove può fallire |
 

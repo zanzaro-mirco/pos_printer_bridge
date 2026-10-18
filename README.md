@@ -77,11 +77,11 @@ anche un `nc -l 9100` sul computer accanto, che stampa a schermo i byte che arri
 
 ## Test
 
-128 test che **non hanno bisogno di una stampante**, più 6 che ne vogliono una.
+131 test che **non hanno bisogno di una stampante**, più 6 che ne vogliono una.
 
 | Dove | Cosa | Come |
 |---|---|---|
-| `esc_pos_builder` | 91 | confronto byte per byte, e un decodificatore che rilegge il flusso all'indietro — anche per i codici a barre e per i bit di un logo |
+| `esc_pos_builder` | 94 | confronto byte per byte, e un decodificatore che rilegge il flusso all'indietro — anche per i codici a barre e per i bit di un logo |
 | `pos_printer_bridge` | 35 | un vero socket contro un vero `ServerSocket`, e il confine con Kotlin con i canali sostituiti |
 | esempio del plugin | 2 | i tre pacchetti si incastrano davvero |
 | **contro una stampante in rete** | 6 | eseguiti contro un emulatore ESC/POS; si saltano da soli finché non gli dici dove guardare |
